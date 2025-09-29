@@ -23,17 +23,54 @@ vim.keymap.set("i", "<C-s>", "<C-\\><C-o>:w<CR>")
 vim.keymap.set("v", "<A-Up>", ":m '<-2<CR>gv=gv")
 vim.keymap.set("v", "<A-Down>", ":m '>+1<CR>gv=gv")
 
--- switch back and forth between last used buffers
-vim.keymap.set({ "n", "i" }, "<C-Tab>", "<C-^>")
--- vim.keymap.set("n", "<S-Tab>", ":tabprevious<CR>")
--- Map a shortcut to open the picker.
--- vim.api.nvim_set_keymap("n", "<Leader><Leader>",
---   [[<cmd>lua require('telescope').extensions.recent_files.pick()<CR>]],
---   {noremap = true, silent = true})
 
--- vim.keymap.set("n", "<leader>ll", function()
---     require('telescope-tabs').list_tabs()
--- end)
+
+-- CTRL TAB
+-- switch back and forth between last used buffers
+-- vim.keymap.set({ "n", "i" }, "<C-Tab>", "<C-^>")
+
+-- VS Code-style buffer navigation with telescope (added to mystuff.lua)
+-- Simple quick buffer cycling (uncomment if you prefer this over telescope)
+-- vim.keymap.set("n", "<C-Tab>", "<C-^>", { desc = "Switch to last buffer" })
+
+-- Alternative: Cycle through buffers in MRU order
+local function cycle_buffers(direction)
+    local buffers = {}
+    for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+        if vim.api.nvim_buf_is_loaded(buf) and vim.api.nvim_buf_get_option(buf, 'buflisted') then
+            table.insert(buffers, buf)
+        end
+    end
+
+    if #buffers <= 1 then return end
+
+    local current = vim.api.nvim_get_current_buf()
+    local current_idx = 1
+
+    for i, buf in ipairs(buffers) do
+        if buf == current then
+            current_idx = i
+            break
+        end
+    end
+
+    local next_idx
+    if direction == 'next' then
+        next_idx = current_idx == #buffers and 1 or current_idx + 1
+    else
+        next_idx = current_idx == 1 and #buffers or current_idx - 1
+    end
+
+    vim.api.nvim_set_current_buf(buffers[next_idx])
+end
+
+-- Uncomment these if you prefer simple cycling over telescope picker
+-- vim.keymap.set("n", "<C-Tab>", function() cycle_buffers('next') end, { desc = "Next buffer" })
+-- vim.keymap.set("n", "<C-S-Tab>", function() cycle_buffers('prev') end, { desc = "Previous buffer" })
+-- CTRL TAB
+
+
+
 
 vim.keymap.set({ "n", "v" }, ">", ">gv", { noremap = true, silent = true })
 vim.keymap.set({ "n", "v" }, "<", "<gv", { noremap = true, silent = true })

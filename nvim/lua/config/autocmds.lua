@@ -132,5 +132,16 @@ vim.api.nvim_create_autocmd({ "BufWritePre" }, {
         vim.fn.mkdir(vim.fn.fnamemodify(file, ":p:h"), "p")
     end,
 })
-
+-- Normalize paths for Windows buffers
+-- if vim.fn.has("win32") == 1 then
+--     vim.api.nvim_create_autocmd({ "BufAdd" }, {
+--         callback = function()
+--             local name = vim.api.nvim_buf_get_name(0)
+--             if name:sub(2, 2) == ":" then
+--                 name = name:gsub("/", "\\"):gsub("^%l", string.upper)
+--                 vim.api.nvim_buf_set_name(0, name)
+--             end
+--         end,
+--     })
+-- end
 -- vim.cmd [[autocmd BufWritePre * lua vim.lsp.buf.format()]]

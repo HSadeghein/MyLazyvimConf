@@ -6,26 +6,6 @@ return
             scroll = { enabled = false },
         }
     },
-    -- {
-    --     'saghen/blink.cmp',
-    --     opts = {
-    --         completion = {
-    --             list = {
-    --                 selection = 'manual',
-    --             },
-    --         },
-    --         cmdline = {
-    --             enabled = true,
-    --             keymap = {
-    --                 ['<CR>'] = { 'accept' },
-    --             },
-    --             sources = {
-    --                 'path', 'cmdline'
-    --             }
-    --         }
-    --     }
-    -- }
-
     {
         "nvim-telescope/telescope.nvim",
         config = function()
@@ -34,32 +14,90 @@ return
                     sorting_strategy = 'ascending',
                     file_ignore_patterns = { "node_modules", ".git/" },
                 },
+                pickers = {
+                    buffers = {
+                        sort_mru = true,
+                        sort_lastused = true,
+                        ignore_current_buffer = true,
+                        mappings = {
+                            i = {
+                                ["<C-d>"] = "delete_buffer",
+                            },
+                            n = {
+                                ["<C-d>"] = "delete_buffer",
+                            }
+                        }
+                    }
+                }
             })
 
             local builtin = require('telescope.builtin')
-            vim.keymap.set('n', '<leader>fs', builtin.grep_string, {})
-            vim.keymap.set('n', '<leader><leader>', function()
-                builtin.oldfiles({
-                    only_cwd = true,
-                })
-            end, {})
+            -- vim.keymap.set('n', '<leader>fs', builtin.grep_string, {})
+            vim.keymap.set('n', '<leader><leader>', LazyVim.pick("oldfiles", { cwd = vim.uv.cwd() }), {})
+
+            -- VS Code-style Ctrl+Tab buffer navigation with telescope picker
+            local function show_buffer_picker(direction)
+                local picker_opts = {
+                    sort_mru = true,
+                    sort_lastused = true,
+                    ignore_current_buffer = false,
+                    path_display = function(_, path)
+                        local cwd = vim.fn.getcwd()
+                        local rel_path = vim.fn.fnamemodify(path, ":.")
+                        local tail = require("telescope.utils").path_tail(path)
+                        return string.format("%s (%s)", tail, rel_path)
+                    end,
+                    -- only_cwd = true,
+                    initial_mode = 'normal',
+                    prompt_title = 'Recent Buffers',
+                    attach_mappings = function(prompt_bufnr, map)
+                        local actions = require('telescope.actions')
+                        local action_state = require('telescope.actions.state')
+
+                        -- Override default selection to close immediately
+                        map('n', '<CR>', function()
+                            local selection = action_state.get_selected_entry()
+                            actions.close(prompt_bufnr)
+                            if selection then
+                                vim.api.nvim_set_current_buf(selection.bufnr)
+                            end
+                        end)
+
+
+                        -- Allow continuing to cycle
+                        map('n', '<C-Tab>', function()
+                            actions.move_selection_next(prompt_bufnr)
+                        end)
+
+                        map('n', '<C-S-Tab>', function()
+                            actions.move_selection_previous(prompt_bufnr)
+                        end)
+
+                        return true
+                    end,
+                    layout_config = {
+                        height = 0.4,
+                        width = 0.6,
+                        prompt_position = "top",
+                    },
+                }
+
+                if direction == 'prev' then
+                    -- For reverse direction, we'll start from the second item
+                    picker_opts.default_selection_index = 2
+                end
+
+                builtin.buffers(picker_opts)
+            end
+
+            vim.keymap.set('n', '<C-Tab>', function()
+                show_buffer_picker('next')
+            end, { desc = 'Switch between recent buffers (VS Code style)' })
+
+            vim.keymap.set('n', '<C-S-Tab>', function()
+                show_buffer_picker('prev')
+            end, { desc = 'Switch between recent buffers in reverse order' })
         end,
-        -- keys = {
-        --     -- add a keymap to browse plugin files
-        --     -- stylua: ignore
-        --     {
-        --         "<leader>fs",
-        --         function()
-        --             require("telescope.builtin").grep_string()
-        --         end
-        --     },
-        --     {
-        --         "<leader><leader>",
-        --         function()
-        --             require("telescope.builtin").oldfiles()
-        --         end
-        --     },
-        -- },
     },
     {
         'ThePrimeagen/harpoon',
@@ -184,6 +222,56 @@ return
     },
     {
         'Mofiqul/vscode.nvim'
+    },
+    {
+        'kevinhwang91/nvim-ufo',
+        requires = 'kevinhwang91/promise-async',
+        config = function()
+            require('ufo').setup(
+                {
+                    provider_selector = function(bufnr, filetype, buftype)
+                        return { 'lsp', 'indent' }
+                    end,
+                    preview = {
+                        win_config = {
+                            border = { '', '─', '', '', '', '─', '', '' },
+                            winhighlight = 'Normal:Folded',
+                            winblend = 0
+                        },
+                    },
+                    fold_virt_text_handler = function(virtText, lnum, endLnum, width, truncate)
+                        local newVirtText = {}
+                        local suffix = (' *** %d lines'):format(endLnum - lnum)
+                        local sufWidth = vim.fn.strdisplaywidth(suffix)
+                        local targetWidth = width - sufWidth
+                        local curWidth = 0
+                        for _, chunk in ipairs(virtText) do
+                            local chunkText = chunk[1]
+                            local chunkWidth = vim.fn.strdisplaywidth(chunkText)
+                            if targetWidth > curWidth + chunkWidth then
+                                table.insert(newVirtText, chunk)
+                            else
+                                chunkText = truncate(chunkText, targetWidth - curWidth)
+                                local hlGroup = chunk[2]
+                                table.insert(newVirtText, { chunkText, hlGroup })
+                                chunkWidth = vim.fn.strdisplaywidth(chunkText)
+                                if curWidth + chunkWidth < targetWidth then
+                                    suffix = suffix .. (' '):rep(targetWidth - curWidth - chunkWidth)
+                                end
+                                break
+                            end
+                            curWidth = curWidth + chunkWidth
+                        end
+                        table.insert(newVirtText, { suffix, 'LineNr' })
+                        return newVirtText
+                    end
+                }
+            )
+        end,
+    },
+    { 'kevinhwang91/promise-async' },
+    {
+        'motiongorilla/p4nvim',
     }
 
 }

@@ -61,6 +61,12 @@ vim.o.foldcolumn = '1' -- '0' is not bad
 vim.o.foldlevel = 99   -- Using ufo provider need a large value, feel free to decrease the value
 vim.o.foldlevelstart = 99
 vim.o.foldenable = true
+
+vim.o.shellslash = true
+
+
+-- vim.opt.foldmethod = "expr"
+-- vim.opt.foldexpr = "v:lua.vim.treesitter.foldexpr()"
 -- local capabilities = vim.lsp.protocol.make_client_capabilities()
 -- capabilities.textDocument.foldingRange = {
 --     dynamicRegistration = false,
@@ -92,3 +98,8 @@ set.scrolloff = 8
 --             hlsl = 'slang', -- make .hlsl files to have hlsl filetype so treesitter gives it proper highlight
 --         }
 --     })
+vim.g.neovide_cursor_animation_length = 0.0
+vim.g.neovide_cursor_trail_size = 0.0
+vim.g.neovide_fullscreen = true
+vim.o.guifont = "JetBrainsMonoNL NFM:h12"
+vim.g.neovide_scroll_animation_length = 0.1
